@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"lib": ["DOM", "ES2022"],
+		"module": "NodeNext",
+		"outDir": "./dist",
+		"strict": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"moduleResolution": "NodeNext",
+		"esModuleInterop": true
+	},
+	"include": ["src/**/*"],
+	"exclude": ["src/**/*.test.ts", "__tests__", "node_modules"]
+}

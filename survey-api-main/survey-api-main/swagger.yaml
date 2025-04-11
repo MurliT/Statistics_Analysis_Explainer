@@ -1,0 +1,825 @@
+openapi: '3.0.2'
+info:
+  title: Survey API
+  license:
+    name: MIT
+    url: https://github.com/SheepCreativeSoftware/survey-api/blob/main/LICENSE
+  description: 'Simple API to manage a survey'
+  version: '1.0.0'
+servers:
+  - url: https://{subdomain}.{domain}/api/v1
+    description: 'Public URL'
+    variables:
+      domain:
+        default: sheepcs.de
+      subdomain:
+        default: survey
+  - url: http://localhost:{port}/api/v1
+    description: 'Local testing URL'
+    variables:
+      port:
+        default: '3000'
+
+paths:
+  /security/register-user:
+    post:
+      tags: 
+        - security
+      description: 'Registers a new user account on the server'
+      requestBody:
+        content:
+          application/json:
+              schema:
+                type: object
+                description: 'User account credentials'
+                properties:
+                  firstName:
+                    type: string
+                    minLength: 1
+                    maxLength: 50
+                  lastName:
+                    type: string
+                    minLength: 1
+                    maxLength: 50
+                  email:
+                    type: string
+                    format: email
+                    minLength: 1
+                    maxLength: 50
+                  password:
+                    type: string
+                    minLength: 8
+                    maxLength: 50
+                example: {
+                  "firstName": "Jane",
+                  "lastName": "Doe",
+                  "email": "jane.doe@example.com",
+                  "password": "12345678"
+                }
+      responses:
+        '201':
+          description: 'Created'
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/UserId'
+        '400':
+          $ref: '#/components/responses/400'
+        '409':
+          $ref: '#/components/responses/409'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /security/login-user:
+    post:
+      tags: 
+        - security
+      description: 'Login a user existing account on the server'
+      requestBody:
+        content:
+          application/json:
+              schema:
+                type: object
+                description: 'User account credentials'
+                properties:
+                  email:
+                    type: string
+                    format: email
+                    minLength: 1
+                    maxLength: 50
+                  password:
+                    type: string
+                    minLength: 8
+                    maxLength: 50
+                example: {
+                    "email": "jane.doe@example.com",
+                    "password": "12345678"
+                }
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema: 
+                type: object
+                description: 'Access Creator token for the user'
+                properties:
+                  token:
+                    type: string
+                    format: jwt
+                example: {
+                    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiQ3JlYXRvciIsImlhdCI6MTcxMzUzOTQ4OSwiZXhwIjoxNzEzNTQxMjg5LCJpc3MiOiJsb2NhbGhvc3QiLCJzdWIiOiIxMTAyMTU2ZS1iMWYxLTRlY2YtOTEwYS1mZDAxMmI3ZDhlNDEiLCJqdGkiOiI2NjJjODBmNy1mZDVlLTRkNTItODExNC05ZmZiNDAyYjQ1ZDUifQ.-Dj5uC5mOn2oIC6M3lpCTdMWJbGW1EuDfee4F6BB9C0"
+                }
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /security/generate-answer-token:
+    post:
+      tags: 
+        - security
+      description: Generates a Access Answerer Token for answering surveys
+      security:
+        - BearerCreatorToken: []
+      requestBody:
+        content:
+          application/json:
+              schema:
+                type: object
+                description: 'Survey Id for answer'
+                properties:
+                  surveyId:
+                    type: string
+                    format: uuid
+                example: {
+                    "surveyId": "af6f94a5-2cc5-4fac-868a-ab70a5bdc033"
+                }
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema: 
+                type: object
+                description: 'Access Creator token for the user'
+                properties:
+                  token:
+                    type: string
+                    format: jwt
+                example: {
+                    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiQ3JlYXRvciIsImlhdCI6MTcxMzUzOTQ4OSwiZXhwIjoxNzEzNTQxMjg5LCJpc3MiOiJsb2NhbGhvc3QiLCJzdWIiOiIxMTAyMTU2ZS1iMWYxLTRlY2YtOTEwYS1mZDAxMmI3ZDhlNDEiLCJqdGkiOiI2NjJjODBmNy1mZDVlLTRkNTItODExNC05ZmZiNDAyYjQ1ZDUifQ.-Dj5uC5mOn2oIC6M3lpCTdMWJbGW1EuDfee4F6BB9C0"
+                }
+        '400':
+          $ref: '#/components/responses/400'
+        '403':
+          $ref: '#/components/responses/403'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /survey-list/open-surveys:
+    get:
+      tags:
+        - survey-list
+      description: 'Returns a list of open surveys of that user'
+      security:
+        - BearerCreatorToken: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 1
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/SurveyWithId'
+                    - $ref: '#/components/schemas/OptionsResponse'
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /survey-list/completed-surveys:
+    get:
+      tags:
+        - survey-list
+      description: 'Returns a list of completed surveys (open for answering) of that user'
+      security:
+        - BearerCreatorToken: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 1
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/SurveyWithId'
+                    - $ref: '#/components/schemas/OptionsResponse'
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /survey-list/create-survey:
+    post:
+      tags:
+        - survey-list
+      description: 'Creates a new survey'
+      security:
+        - BearerCreatorToken: []
+      requestBody:
+        content:
+          application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Survey'
+                  - $ref: '#/components/schemas/OptionsCreation'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyCreatedResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /survey-list/adjust-survey:
+    post:
+      tags:
+        - survey-list
+      description: 'Adjusts parameters of a survey'
+      security:
+        - BearerCreatorToken: []
+      requestBody:
+        content:
+          application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SurveyWithId'
+                  - $ref: '#/components/schemas/OptionsAdjust'
+
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /survey-list/complete-survey:
+    post:
+      tags:
+        - survey-list
+      description: 'Completes a survey / Opens them for answering'
+      security:
+        - BearerCreatorToken: []
+      requestBody:
+        content:
+          application/json:
+              schema:
+                type: object
+                description: 'Id of the survey'
+                properties:
+                  surveyId:
+                    type: string
+                    format: uuid
+                example: {
+                    "surveyId": "e1b3f489-ae9b-4bcc-8a17-a5bf9e841fb4",
+                }
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /survey-result/open-result:
+    get:
+      tags: 
+        - survey-result
+      description: Returns the results of a survey
+      security:
+        - BearerAnswererToken: []
+        - BearerCreatorToken: []
+      parameters:
+        - in: query
+          name: surveyId
+          schema:
+            type: string
+            format: uuid
+          description: 'Id of the survey (Only required when using Creator Token | Answerer Token already provides a Survey Id)'
+          example: 87145350-a26a-4e59-af19-bb72f25cdb81
+          required: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 'List with result count to each of the options'
+                properties:
+                  surveyId:
+                    type: string
+                    format: uuid
+                  totalCount:
+                    type: number
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        optionId:
+                          type: string
+                          format: uuid
+                        resultCount:
+                          type: number
+                example: {
+                      "surveyId": "87145350-a26a-4e59-af19-bb72f25cdb81",
+                      "totalCount": 2,
+                      "results": [
+                          {
+                              "optionId": "583704ab-f5f9-4fbd-84a4-8351758d19ad",
+                              "resultCount": 1
+                          },
+                          {
+                              "optionId": "af6f94a5-2cc5-4fac-868a-ab70a5bdc033",
+                              "resultCount": 1
+                          }
+                      ]
+                  }
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /answer/open-survey:
+    get:
+      tags:
+        - answer
+      description: Returns the survey that is related to the Answerer Token
+      security:
+        - BearerAnswererToken: []
+      responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  allOf:
+                    - $ref: '#/components/schemas/SurveyWithId'
+                    - $ref: '#/components/schemas/OptionsResponse'
+          '401':
+            $ref: '#/components/responses/401'
+          '404':
+            $ref: '#/components/responses/404'
+          '500':
+            $ref: '#/components/responses/500'
+
+  /answer/answer-survey:
+    post:
+      tags:
+        - answer
+      description: Answers the survey that is related to the Answerer Token (Can only be used once per Answerer Token)
+      security:
+        - BearerAnswererToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Depending on the suvery choice type, it requieres either an array of options or a single option
+              oneOf:
+                - type: object
+                  properties:
+                    optionId:
+                      type: string
+                      format: uuid
+                  example: {
+                        "optionId": "fced3fe3-bcea-4b2d-9e8b-9920ae963f5c"
+                    }
+                - type: array
+                  items:
+                    type: object
+                    properties:
+                      optionId:
+                        type: string
+                        format: uuid
+                  example: [
+                        {
+                            "optionId": "583704ab-f5f9-4fbd-84a4-8351758d19ad"
+                        },
+                        {
+                            "optionId": "af6f94a5-2cc5-4fac-868a-ab70a5bdc033"
+                        }
+                    ]
+      responses:
+          '200':
+            description: OK
+          '401':
+            $ref: '#/components/responses/401'
+          '404':
+            $ref: '#/components/responses/404'
+          '409':
+            $ref: '#/components/responses/409'
+          '500':
+            $ref: '#/components/responses/500'
+
+  /open-api-spec:
+    get:
+      tags:
+        - open-api-spec
+      description: Shows this Open API specification
+      responses:
+        '200':
+          description: OK
+          content:
+            text/yaml:
+              schema:
+                description: Shows this Open API specification
+
+components:
+  securitySchemes:
+    BearerCreatorToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    BearerAnswererToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserId:
+      type: object
+      description: 'Returns the user id'
+      properties:
+        status:
+          type: string
+          format: uuid
+      example:
+        id: 'f197ea8b-da1b-4197-8cbd-600733ce6c45'
+
+    Survey:
+      type: object
+      required:
+        - surveyName
+        - surveyDescription
+        - choicesType
+        - endDate
+      properties:
+        surveyName:
+          description: 'Name of the survey'
+          type: string
+        surveyDescription:
+          description: 'Description of the survey'
+          type: string
+        choicesType:
+          description: 'Survey is single or multiple choice?'
+          type: string
+          enum:
+            - 'single'
+            - 'multiple'
+        endDate:
+          description: 'When will the survey end?'
+          type: string
+          format: ISO-DateString
+      example:
+        surveyName: 'The Survey'
+        surveyDescription: 'What do you think about?'
+        choicesType: 'single'
+        endDate: '2024-02-19T18:09:00.967Z'
+
+    SurveyWithId:
+      type: object
+      required:
+        - surveyId
+        - surveyName
+        - surveyDescription
+        - choicesType
+        - endDate
+      properties:
+        surveyId:
+            description: 'Name of the survey'
+            type: string
+            format: uuid
+        surveyName:
+          description: 'Name of the survey'
+          type: string
+        surveyDescription:
+          description: 'Description of the survey'
+          type: string
+        choicesType:
+          description: 'Survey is single or multiple choice?'
+          type: string
+          enum:
+            - 'single'
+            - 'multiple'
+        created:
+          description: 'When has this survey been created'
+          type: string
+          format: ISO-DateString
+        endDate:
+          description: 'When will the survey end?'
+          type: string
+          format: ISO-DateString
+      example: {
+            "surveyId": "53f79b77-2db2-4a55-bcca-05d82dfbeb1a",
+            "surveyName": "The postman survey Updated",
+            "surveyDescription": "Some test Haha",
+            "choicesType": "single",
+            "created": "2024-04-16T18:25:40.000Z",
+            "endDate": "2024-05-03T23:00:00.000Z",
+        }
+
+    SurveyCreatedResponse:
+      type: object
+      description: 'The Ids of the survey for later editing'
+      required:
+        - options
+      properties:
+        surveyId:
+          type: string
+          format: uuid
+        options:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            properties:
+              optionId:
+                type: string
+                format: uuid
+      example: {
+            "surveyId": "0e84a131-6f74-45d7-b382-483a667e73e6",
+            "options": [
+                {
+                    "optionId": "fced3fe3-bcea-4b2d-9e8b-9920ae963f5c"
+                },
+                {
+                    "optionId": "1e101da6-cd0d-4748-a52c-efeaa3679d2b"
+                }
+            ]
+        }
+
+    OptionsCreation:
+      type: object
+      description: 'Different options of the survey'
+      required:
+        - options
+      properties:
+        options:
+          type: array
+          minItems: 2
+          items:
+            type: object
+            required:
+              - optionName
+              - content
+            properties:
+              optionName:
+                description: 'Question of the option'
+                type: string
+              content: 
+                description: 'Additional context of the survey'
+                type: string
+      example:
+        options: [
+          {
+            optionName: 'Choice Name 1',
+            content: 'Context of the choice'
+          },
+          {
+            optionName: 'Choice Name 2',
+            content: 'Context of the choice'
+          }
+        ]
+
+    OptionsResponse:
+      type: object
+      description: 'Different options of the survey'
+      required:
+        - options
+      properties:
+        options:
+          type: array
+          minItems: 2
+          items:
+            type: object
+            required:
+              - optionName
+              - optionId
+              - content
+            properties:
+              optionId:
+                type: string
+                format: uuid
+                description: 'Id of that option'
+              optionName:
+                description: 'Question of the option'
+                type: string
+              content: 
+                description: 'Additional context of the survey'
+                type: string
+      example:
+        options: [
+          {
+            optionName: 'Choice Name 1',
+            optionId: '28dc30d0-de6c-4566-83b6-b51b2bc1e59f',
+            content: 'Context of the choice'
+          },
+          {
+            optionName: 'Choice Name 2',
+            optionId: '211c623d-b18b-4df8-a531-4c7a68e9fcb2',
+            content: 'Context of the choice'
+          }
+        ]
+
+    OptionsAdjust:
+      type: object
+      description: 'Adjusts Options from the survey'
+      required:
+        - options
+      properties:
+        options:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - optionId
+              - status
+            properties:
+              optionId:
+                type: string
+                format: uuid
+                description: 'Id of that option'
+              optionName:
+                description: 'Question of the option'
+                type: string
+              content: 
+                description: 'Additional context of the survey'
+                type: string
+              status: 
+                description: 'Defines what kind of adjustment should be done'
+                type: string
+                enum:
+                  - 'Delete'
+                  - 'New'
+                  - 'Insert'
+      example:
+        options: [
+          {
+            optionId: '28dc30d0-de6c-4566-83b6-b51b2bc1e59f',
+            status: 'Delete'
+          },
+          {
+            optionId: '28dc30d0-de6c-4566-83b6-b51b2bc1e59f',
+            optionName: 'Choice Name 2',
+            content: 'Context of the choice',
+            status: 'New'
+          },
+          {
+            optionId: '28dc30d0-de6c-4566-83b6-b51b2bc1e59f',
+            optionName: 'Choice Name 2',
+            content: 'Context of the choice',
+            status: 'Update'
+          },
+        ]
+
+  responses:
+    '400':
+      description: 'Bad Request: The request is invalid.'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                description: Type of Error
+                type: string
+              message:
+                description: Clear message describing the error (optional)
+                type: string
+              statusCode:
+                description: HTTP Standard Status Code
+                type: number
+            example: {
+              error: "Bad Request",
+              message: "Missing data field in request body",
+              statusCode: 400
+            }
+    '401':
+      description: 'Unauthorized: The request requires a specific access token to authorize.'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                description: Type of Error
+                type: string
+              message:
+                description: Clear message describing the error (optional)
+                type: string
+              statusCode:
+                description: HTTP Standard Status Code
+                type: number
+            example: {
+              error: "Unauthorized",
+              message: "Invalid Token: JWT expired",
+              statusCode: 401
+            }
+    '403':
+      description: 'Forbidden: The client does not have access rights to the content.'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                description: Type of Error
+                type: string
+              message:
+                description: Clear message describing the error (optional)
+                type: string
+              statusCode:
+                description: HTTP Standard Status Code
+                type: number
+            example: {
+              error: "Forbidden",
+              message: "Credentials are wrong",
+              statusCode: 403
+            }
+    '404':
+      description: 'Not Found: The ressource was not found.'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                description: Type of Error
+                type: string
+              message:
+                description: Clear message describing the error (optional)
+                type: string
+              statusCode:
+                description: HTTP Standard Status Code
+                type: number
+            example: {
+              error: "Not Found",
+              message: "Ressouce with ID: xxxx not found",
+              statusCode: 404
+            }
+
+    '409':
+      description: 'Conflict: There is a conflict with the provided data.'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                description: Type of Error
+                type: string
+              message:
+                description: Clear message describing the error (optional)
+                type: string
+              statusCode:
+                description: HTTP Standard Status Code
+                type: number
+            example: {
+              error: "Conflict",
+              message: "Already answered or invalid option",
+              statusCode: 409
+            }
+    '500':
+      description: 'Internal Server Error: The server has encountered a situation it does not know how to handle.'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                description: Type of Error
+                type: string
+              message:
+                description: Clear message describing the error (optional)
+                type: string
+              statusCode:
+                description: HTTP Standard Status Code
+                type: number
+            example: {
+              error: "Internal Server Error",
+              statusCode: 500
+            }
+
